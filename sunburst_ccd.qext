@@ -1,0 +1,9 @@
+{
+    "name": "SunBurst_CCD",
+    "description": "zoomable sunburst extension",
+    "icon": "extension",
+    "type": "visualization",
+    "version": "1.9.0.7",
+    "preview": "sunburst.png",
+    "author": "Cemil Canberk Duman"
+}
