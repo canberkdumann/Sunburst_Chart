@@ -28,16 +28,14 @@ function drawBurst($element, layout, fullMatrix) {
     var x = d3.scale.linear().range([0, 2 * Math.PI]);
     var y = d3.scale.linear().range([0, radius]);
 
-    //! Define color scale based on average value
     function getColorByAverage(avg) {
-        if (avg <= 0.75) return "#FFB3B3";        // pastel red
-        if (avg <= 1.0) return "#FFF6B3";         // pastel yellow
-        if (avg <= 1.25) return "#B3FFB3";        // pastel green
-        if (avg <= 1.5) return "#B3FFF6";         // soft turquoise
-        return "#B3D1FF";                         // soft blue
+        if (avg <= 0.75) return "#FFB3B3";
+        if (avg <= 1.0) return "#FFF6B3";
+        if (avg <= 1.25) return "#B3FFB3";
+        if (avg <= 1.5) return "#B3FFF6";
+        return "#B3D1FF";
     }
 
-    //! Recursively assign color based on current node's own subtree average
     function assignColorsPerLevel(node) {
         if (!node.children || node.children.length === 0) return;
 
@@ -73,63 +71,51 @@ function drawBurst($element, layout, fullMatrix) {
 
     assignColorsPerLevel(myJSON);
 
-
-function cropLabel(name, depth) {
-
-    if (depth === 2) {
-        const sanitized = name.replace(',', '.'); // fix decimal comma
-        const num = parseFloat(sanitized);
-        if (!isNaN(num)) return num.toFixed(2); // ✅ correct formatting
-    }
-    if (depth === 1) {
-        const words = name.split(" ");
-        if (words.length >= 2 && words[1].includes(".")) {
-            return words[0] + " " + words[1];
-        } else {
-            return words[0];
+    function cropLabel(name, depth) {
+        if (depth === 2) {
+            const sanitized = name.replace(',', '.');
+            const num = parseFloat(sanitized);
+            if (!isNaN(num)) return num.toFixed(2);
         }
-    }
-    return name;
-}
-
-
-// 📍 Breadcrumb generator - Eklendi
-function updateBreadcrumb(d) {
-    const pathArray = d.ancestors ? d.ancestors().reverse() : getAncestors(d);
-
-    // Clear previous
-    breadcrumbContainer.html("");
-
-    // Add breadcrumb links
-    pathArray.forEach((node, index) => {
-        breadcrumbContainer.append("span")
-            .style("cursor", "pointer")
-            .style("text-decoration", "underline")
-            .style("margin-right", "6px")
-            .text(node.name)
-            .on("click", function () {
-                click(node); // zoom to that node
-            });
-
-        if (index < pathArray.length - 1) {
-            breadcrumbContainer.append("span").text(" > ").style("margin-right", "6px");
+        if (depth === 1) {
+            const words = name.split(" ");
+            if (words.length >= 2 && words[1].includes(".")) {
+                return words[0] + " " + words[1];
+            } else {
+                return words[0];
+            }
         }
-    });
-}
+        return name;
+    }
 
-// 💡 D3 v3 compatibility - fallback for ancestors
-function getAncestors(node) {
-    const path = [];
-    let current = node;
-    while (current.parent) {
+    function updateBreadcrumb(d) {
+        const pathArray = d.ancestors ? d.ancestors().reverse() : getAncestors(d);
+        breadcrumbContainer.html("");
+        pathArray.forEach((node, index) => {
+            breadcrumbContainer.append("span")
+                .style("cursor", "pointer")
+                .style("text-decoration", "underline")
+                .style("margin-right", "6px")
+                .text(node.name)
+                .on("click", function () {
+                    click(node);
+                });
+            if (index < pathArray.length - 1) {
+                breadcrumbContainer.append("span").text(" > ").style("margin-right", "6px");
+            }
+        });
+    }
+
+    function getAncestors(node) {
+        const path = [];
+        let current = node;
+        while (current.parent) {
+            path.unshift(current);
+            current = current.parent;
+        }
         path.unshift(current);
-        current = current.parent;
+        return path;
     }
-    path.unshift(current); // root
-    return path;
-}
-
-
 
     var svg = d3.select("#" + id).append("svg").attr("width", width).attr("height", height)
         .append("g").attr("transform", "translate(" + width / 2 + "," + (height / 2 + 10) + ")");
@@ -150,16 +136,14 @@ function getAncestors(node) {
         .style("opacity", 0)
         .style("pointer-events", "none")
         .style("z-index", 10000);
-		
-		// 🌐 Breadcrumb container - Eklendi
-var breadcrumbContainer = d3.select("#" + id)
-    .insert("div", ":first-child")
-    .attr("class", "sunburst-breadcrumb")
-    .style("font-family", "'Segoe UI', sans-serif")
-    .style("font-size", "13px")
-    .style("margin-bottom", "10px")
-    .style("color", "#333");
 
+    var breadcrumbContainer = d3.select("#" + id)
+        .insert("div", ":first-child")
+        .attr("class", "sunburst-breadcrumb")
+        .style("font-family", "'Segoe UI', sans-serif")
+        .style("font-size", "13px")
+        .style("margin-bottom", "10px")
+        .style("color", "#333");
 
     var path = g.append("path")
         .attr("d", arc)
@@ -204,11 +188,12 @@ var breadcrumbContainer = d3.select("#" + id)
             .attr("dx", "6")
             .attr("dy", ".35em")
             .style("pointer-events", "none")
+            .style("fill-opacity", function (d) {
+                return d.depth === 1 ? 1 : 0;
+            })
             .each(function (d) {
                 var el = d3.select(this);
-                var maxChars = 6;
-              var label = cropLabel(d.name, d.depth);
-
+                var label = cropLabel(d.name, d.depth);
                 el.text(label);
 
                 el.on("mouseover", function (event) {
@@ -233,7 +218,8 @@ var breadcrumbContainer = d3.select("#" + id)
                 });
             });
     }
-
+	
+	
     //! Add HTML-based legend
     const htmlLegend = document.createElement("div");
     htmlLegend.className = "sunburst-legend";
@@ -247,8 +233,17 @@ var breadcrumbContainer = d3.select("#" + id)
     document.getElementById(id).appendChild(htmlLegend);
 
     function click(d) {
-	updateBreadcrumb(d); // 🔗 Breadcrumb update on click
-        text.transition().attr("opacity", 0);
+        updateBreadcrumb(d);
+        const descendants = getDescendants(d);
+        text.transition()
+            .duration(1000)
+            .style("fill-opacity", function (t) {
+                if (d.depth === 0) {
+                    return t.depth === 1 ? 1 : 0; // root'a dönüldüğünde sadece çekirdek isimleri göster
+                }
+                return descendants.includes(t) ? 1 : 0;
+            });
+
         path.transition().duration(750)
             .attrTween("d", senseD3.arcTween(d, x, y, radius, arc))
             .each("end", function (e, i) {
@@ -264,10 +259,43 @@ var breadcrumbContainer = d3.select("#" + id)
             });
     }
 
+    function getDescendants(node) {
+        const nodes = [];
+        function recurse(n) {
+            nodes.push(n);
+            if (n.children) n.children.forEach(recurse);
+        }
+        recurse(node);
+        return nodes;
+    }
+
     d3.select(self.frameElement).style("height", height + 100 + "px");
-	
-	updateBreadcrumb(myJSON); // 📌 Root breadcrumb shown initially
+    updateBreadcrumb(myJSON);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 $('<style>').html(`
     .custom-tooltip {
